@@ -228,7 +228,7 @@ function IDtoPlayers(IDs) {
     .then((users) => {
       recorddict = condense(users);
       indexlist = valueSort(recorddict);
-
+      document.getElementById("recordList").innerHTML = "";
       for (let i=0; i<indexlist.length; i++) {
         createDropdown(indexlist[i] + ": " + recorddict[indexlist[i]].length.toString(), recorddict[indexlist[i]]);
       }
