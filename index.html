@@ -9,15 +9,23 @@
   <link rel="icon" type="image/x-icon" href="/images/favicon.ico">
   <script src="https://cdn.syncfusion.com/ej2/dist/ej2.min.js" type="text/javascript"></script>
   <script src="script.js"></script>
-  <script src="pfinderscript.js"></script>
+  <script src="pieceData.js"></script>
+  <script src="ghosts.js"></script>
 </head>
 
 <body>
-  <p>Paste any track link and click the button</p>
-  <p>Nothing happens if the link is invalid, so try a different one</p>
+  <h1>Welcome to dashcraft thingy.</h1>
   <br>
-  <button class="button" onclick="main()">Get Info</button>
-  <input class="textinput" type=“text” id="IDinput" placeholder="Paste link here">
+
+  <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+  <div class="form__group">
+    <input type="text" class="form__input" id="IDinput" placeholder="Track Link" required="" />
+    <label for="IDinput" class="form__label">Track Link</label>
+  </div>
+  
+  <button class="button-85" role="button" onclick=main()>Get Info</button>
+  <br>
+  
   <div class="row">
     <div class="column">
       <p class="important" id="p1">General info</p>
@@ -30,16 +38,12 @@
     </div>
   </div>
   <br>
-  <button class="button" onclick="wrCount(false)">Count Verified Records</button>
-  <button class="button" onclick="wrCount(true)">Count ALL Records</button>
+  <button class="button-89" role="button" onclick="wrCount(false)">Count Verified Records</button>
+  <button class="button-89" role="button" onclick="wrCount(true)">Count ALL Records</button>
   <div class="right">
   </div>
-  <div>
-    <input type="checkbox" id="cheatFilter" name="cheatFilter" checked>
-    <label class="p" for="cheatFilter">Filter out hacks and cheats</label>
-  </div>
   <p id="loading"></p>
-  <div class="important" id="recordList"></div>
+  <div class="main-output" id="recordList" style="margin-right: 30%; margin-left: 30%;"></div>
 
   <div id="container"></div>
 </body>

@@ -14,12 +14,13 @@ function main() {
   fetch("https://cdn.dashcraft.io/v2/prod/track/" + ID + ".json")
     .then((response) => response.json())
     .then((json) => sendPieces(json));
+  getTrackGhosts(ID);
 }
 
 function createDropdown(playerName, recordList) {
   dropdown = document.createElement("div");
   dropdown.className = "dropdown";
-  
+
   button = document.createElement("button");
   button.className = "dropbtn";
   button.innerHTML = playerName;
@@ -31,20 +32,20 @@ function createDropdown(playerName, recordList) {
   for (let i=0; i<recordList.length; i++) {
     listItem = document.createElement("a");
     listItem.target = "_blank";
-    listItem.href = "https://dashcraft.io/new/?t=" + recordList[i][0];
+    listItem.href = "https://dashcraft.io?t=" + recordList[i][0];
     listItem.innerHTML = recordList[i][1];
     dropContent.appendChild(listItem);
   }
-  
+
   dropdown.appendChild(dropContent);
-  
+
   document.getElementById("recordList").appendChild(dropdown);
   document.getElementById("recordList").appendChild(document.createElement("br"));
 
 }
 
 
-function sendOut(response) {
+async function sendOut(response) {
   console.log(response);
   trackname = response.name;
   laps = response.lapsCount + 1;
@@ -54,12 +55,20 @@ function sendOut(response) {
   lb = response.leaderboard;
   creator = response.user.username;
   public = response.isPublic;
-  
-  document.getElementById("p1").innerHTML = "<u>Name:</u> " + trackname + "<br><u>Created By:</u> " + creator + "<br><u>Laps:</u> " + laps + "<br><u>Likes:</u> " + likes + "<br><u>Dislikes:</u> " + dislikes + "<br><u>Verified:</u> " + verified.toString() + "<br><u>Public:</u> " + public.toString();
+  var padding = 30;
+  var padding2 = 22
+  document.getElementById("p1").innerHTML = ("<u>Created By:</u> " + creator.toString()).padEnd(padding) + ("<br><u>Laps:</u> ".padEnd(padding2) + laps.toString()).padEnd(padding) + ("<br><u>Likes:</u> ".padEnd(padding2) + likes.toString()).padEnd(padding) + ("<br><u>Dislikes:</u> ".padEnd(padding2) + dislikes.toString()).padEnd(padding) + ("<br><u>Verified:</u> ".padEnd(padding2) + verified.toString()).padEnd(padding) + ("<br><u>Public:</u> ".padEnd(padding2) + public.toString()).padEnd(padding);
 
-  lbstr = "<u>username -- time (seconds)</u><br>";
+  lbstr = "<u>    username     |   time   | distance | speed </u><br>";
+  ghostList = await getTrackGhosts(response._id)
+  
   for (let i = 0; i < lb.length; i++) {
-    lbstr += lb[i].user.username + " -- " + lb[i].time + "<br>";
+    let ghostListUser = ghostList[lb[i].user._id]
+    let ghostLen = ghostListUser.ghostLen;
+    let averageSpeed = ghostListUser.averageSpeed;
+    lbstr += (lb[i].user.username).padEnd(16) + " | " + lb[i].time.toString().padEnd(8) + " | ";
+    lbstr += Math.round(ghostLen).toString().padEnd(8) + " | " + Math.round(averageSpeed).toString().padEnd(6);
+    lbstr += "<br>"
   }
   document.getElementById("p3").innerHTML = lbstr;
 }
@@ -67,23 +76,21 @@ function sendOut(response) {
 function sendPieces(response) {
   pieces = response.trackPieces;
   piecelist = [];
-  
+
   for (let i = 0; i < pieces.length; i++) {
     piecelist.push(pieces[i].id);
   }
   piecedict = condenseBasic(piecelist);
   piecekeys = valueSort(piecedict);
-  
+
   text = "<b><u>Total pieces:</u> " + piecelist.length.toString() + "</b><br>";
 
-  /*
   for (let i = 0; i < piecekeys.length; i++) {
-    text += "<u>" + getPieceText(piecekeys[i]) + ":</u> " + piecedict[piecekeys[i]].toString()
+    text += "<u>" + (getPieceText(piecekeys[i]) + ":</u>").padEnd(30) + piecedict[piecekeys[i]].toString().padEnd(5)
     text += "<br>"
   }
-  */
-  text += "Specific piece counter will be added once the full game is released";
-  
+  //text += "Specific piece counter will be added once the full game is released";
+
   document.getElementById("p2").innerHTML = text;
 }
 
@@ -107,17 +114,16 @@ function condense(arr) {
 
 function condenseBasic(arr) {
   const counts = {};
-  
+
   for (const num of arr) {
     counts[num] = counts[num] ? counts[num] + 1 : 1;
   }
-  
+
   return counts;
 }
 
 
 function getPieceText(ID) {
-  allpieces = {1:"start",2:"finish",3:"short straight",4:"medium straight",5:"long straight",6:"small turn",7:"medium turn",8:"big turn",9:"large turn",10:"short climb",11:"medium climb",12:"ramp small",13:"ramp medium",14:"ramp large",15:"curb 1",16:"curb 2",17:"curb 3",18:"vertical",19:"horizontal",20:"slope",21:"ramp 1",22:"ramp 2",23:"loop",24:"xs climb",25:"vertical 90",26:"loop with borders",27:"straight border left",28:"oblique",29:"curved inside",30:"curved outside",31:"no border",32:"pipe vertical",33:"pipe horizontal",34:"pipe curb 1",35:"pipe curb 2",38:"arrows right",39:"arrows left",40:"booth side",41:"booth corner",42:"booth middle",43:"ramp 1 border left",44:"ramp 2 border left",45:"slope border left",46:"ramp 1 no border",47:"ramp 2 no border",48:"slope no border",49:"tiny straight",50:"slope border right",51:"ramp 1 border right",52:"ramp 2 border right",53:"slope 90",54:"straight border right",55:"water side",57:"water corner",58:"water middle",59:"trees",60:"small right snake",61:"small left snake",62:"medium right snake",63:"medium left snake",64:"big right snake",65:"big left snake",66:"hill middle",67:"hill side",68:"hill corner",69:"tiny incline",70:"short incline",71:"transition right",72:"transition left",73:"bank right",74:"bank left",75:"right climb",76:"left climb"};
   return allpieces[ID];
 }
 
@@ -128,7 +134,7 @@ function valueSort(dict) {
   items.sort(
     (first, second) => { return second[1] - first[1] }
   );
-  
+
   var keys = items.map(
     (e) => { return e[0] });
 
@@ -142,11 +148,11 @@ function wrCount(countAll) {
   if (countAll) {
     document.getElementById("loading").innerHTML = "loading... you may have to wait a while for this one";
   }
-  
+
   var fetches = [];
   var URL1 = "https://api.dashcraft.io/trackv2/verified2?page=";
   if (countAll) {
-    URL1 = "https://api.dashcraft.io/trackv2/global/";
+    URL1 = "https://api.dashcraft.io/trackv2/global2?sort=2&page=";
   }
   for (let i = 0; i < 10; i++) {
     fetches.push(
@@ -178,7 +184,7 @@ function wrCount(countAll) {
 
 function IDtoPlayers(IDs) {
   var fetches = [];
-  var checkCheats = document.getElementById("cheatFilter").checked;
+  var checkCheats = true;
   for (let ID = 0; ID < IDs.length; ID++) {
     try {
       fetcH = fetch("https://api.dashcraft.io/trackv2/" + IDs[ID] + "?", {
@@ -189,14 +195,15 @@ function IDtoPlayers(IDs) {
        .then((json) => {
           jsonLB = json.leaderboard;
           var trackName = json.name;
+          var creatorName = json.user.username;
           if (trackName == "") {
            trackName = "Unnamed Track"
           }
-          var track = [json._id, trackName];
-         
+          var track = [json._id, creatorName];
+
           for (let v=0; v<jsonLB.length; v++) {
             var username = jsonLB[v].user.username;
-            
+
             var time = jsonLB[v].time;
             if (!checkCheats) {
               return [username, track];
@@ -210,7 +217,7 @@ function IDtoPlayers(IDs) {
           if (jsonLB.length == 0) {
             return ["Empty Leaderboard", track]
           }
-         
+
         })
       fetches.push(fetcH);
     } catch (error) {
@@ -225,7 +232,7 @@ function IDtoPlayers(IDs) {
       for (let i=0; i<indexlist.length; i++) {
         createDropdown(indexlist[i] + ": " + recorddict[indexlist[i]].length.toString(), recorddict[indexlist[i]]);
       }
-      
+
       document.getElementById("loading").innerHTML = "";
       console.log(indexlist);
       console.log(recorddict);
@@ -236,9 +243,9 @@ function IDtoPlayers(IDs) {
         dataDict = {'x':indexlist[i], 'y':recorddict[indexlist[i]].length};
         dataList.push(dataDict);
       }
-      
+
       displayPie(dataList);
-      
+
     });
 }
 
@@ -259,17 +266,17 @@ function displayPie(theData) {
             yName: 'y'
         }
     ],
-    
+
     tooltip: { enable: true, header: 'all tracks', format: '${point.x}:<b> ${point.y} records<b>' },
-      
+
     legendSettings: {
       visible: false,
     }, 
-    background: 'DDCCEE',
+    background: "transparent",
     legendSettings:{
       height: '400', width:'200', textStyle: {color: 'white'}
-    }
-    
+    },
+    palette: ["#EDC2FF", "#BDC2AF", "#DD72EF", "#EDC2CF", "#ADC2FF"]
     });
 
   document.getElementById("container").innerHTML = "";
