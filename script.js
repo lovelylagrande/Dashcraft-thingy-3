@@ -46,7 +46,7 @@ function createDropdown(playerName, recordList) {
 
 
 async function sendOut(response) {
-  console.log(response);
+  //console.log(response);
   trackname = response.name;
   laps = response.lapsCount + 1;
   likes = response.likesCount;
@@ -96,7 +96,7 @@ function sendPieces(response) {
 
 function condense(arr) {
   const counts = {};
-  console.log(arr);
+  //console.log(arr);
   for (const num of arr) {
     if (num === undefined) {
       continue;
@@ -107,7 +107,7 @@ function condense(arr) {
     }
     counts[num[0]] = [num[1],];
   }
-  console.log(counts);
+  //console.log(counts);
   return counts;
 }
 
@@ -173,7 +173,7 @@ function wrCount(countAll) {
   Promise.all(fetches)
     .then((IDL) => {
       IDarr = [];
-      console.log("Search found " + IDL.length + " tracks.");
+      //console.log("Search found " + IDL.length + " tracks.");
       for (let a = 0; a < IDL.length; a++) {
         for (let b = 0; b < IDL[a].length; b++) {
           IDarr.push(IDL[a][b]);
@@ -183,76 +183,88 @@ function wrCount(countAll) {
     });
 }
 
-function IDtoPlayers(IDs) {
-  var fetches = [];
-  var checkCheats = true;
-  for (let ID = 0; ID < IDs.length; ID++) {
-    try {
-      fetcH = fetch("https://api.dashcraft.io/trackv2/" + IDs[ID] + "?", {
-                   headers: {
-                     'Authorization': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NWM0NmMzNGExYmEyMjQyNGYyZTAwMzIiLCJpbnRlbnQiOiJvQXV0aCIsImlhdCI6MTcwNzM3MTU3Mn0.0JVw6gJhs4R7bQGjr8cKGLE7CLAGvyuMiee7yvpsrWg'
-                   }})
-       .then((response) => response.json())
-       .then((json) => {
-          jsonLB = json.leaderboard;
-          var trackName = json.name;
-          var creatorName = json.user.username;
-          if (trackName == "") {
-           trackName = "Unnamed Track"
-          }
-          var track = [json._id, creatorName];
-
-          for (let v=0; v<jsonLB.length; v++) {
-            var username = jsonLB[v].user.username;
-
-            var time = jsonLB[v].time;
-            if (!checkCheats) {
-              return [username, track];
-            } else if (!(banlist.includes(username)/* || (Math.round(time) == time)*/)) {
-              return [username, track];
+async function IDtoPlayers(IDs) {
+  document.getElementById("recordList").innerHTML = "";
+  var users = [];
+  var loopCount = 0;
+  const batchSize = 30;
+  var completion = 0;
+  while (completion < 100) {
+    document.getElementById("recordList").innerHTML = completion.toFixed(1) + "% (" + loopCount * batchSize + " / " + IDs.length + ")";
+    var fetches = [];
+    var checkCheats = true;
+    for (let ID = batchSize * loopCount; ID < Math.min(batchSize * (loopCount + 1), IDs.length); ID++) {
+      try {
+        fetcH = fetch("https://api.dashcraft.io/trackv2/" + IDs[ID] + "?", {
+                     headers: {
+                       'Authorization': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NWM0NmMzNGExYmEyMjQyNGYyZTAwMzIiLCJpbnRlbnQiOiJvQXV0aCIsImlhdCI6MTcwNzM3MTU3Mn0.0JVw6gJhs4R7bQGjr8cKGLE7CLAGvyuMiee7yvpsrWg'
+                     }})
+         .then((response) => response.json())
+         .then((json) => {
+            jsonLB = json.leaderboard;
+            var trackName = json.name;
+            var creatorName = json.user.username;
+            if (trackName == "") {
+             trackName = "Unnamed Track"
             }
-            else {
-              console.log(username + " -- " + IDs[ID])
+            var track = [json._id, creatorName];
+  
+            for (let v=0; v<jsonLB.length; v++) {
+              var username = jsonLB[v].user.username;
+  
+              var time = jsonLB[v].time;
+              if (!checkCheats) {
+                return [username, track];
+              } else if (!(banlist.includes(username)/* || (Math.round(time) == time)*/)) {
+                return [username, track];
+              }
+              else {
+                //console.log(username + " -- " + IDs[ID])
+              }
             }
-          }
-          if (jsonLB.length == 0) {
-            return ["Empty Leaderboard", track]
-          }
-
-        })
-      fetches.push(fetcH);
-    } catch (error) {
-      console.log(error);
+            if (jsonLB.length == 0) {
+              return ["Empty Leaderboard", track]
+            }
+  
+          })
+        fetches.push(fetcH);
+      } catch (error) {
+        console.log(error);
+      }
     }
+    let result = await Promise.all(fetches);
+    users = users.concat(result);
+    loopCount++;
+    completion = 100 * loopCount * batchSize / IDs.length;
   }
-  Promise.all(fetches)
-    .then((users) => {
-      recorddict = condense(users);
-      indexlist = valueSort(recorddict);
-      document.getElementById("recordList").innerHTML = "";
-      for (let i=0; i<indexlist.length; i++) {
-        createDropdown(indexlist[i] + ": " + recorddict[indexlist[i]].length.toString(), recorddict[indexlist[i]]);
-      }
 
-      document.getElementById("loading").innerHTML = "";
-      console.log(indexlist);
-      console.log(recorddict);
+  document.getElementById("recordList").innerHTML = "100% (" + IDs.length + " / " + IDs.length + ")";
+  
+  
+  recorddict = condense(users);
+  indexlist = valueSort(recorddict);
+  document.getElementById("recordList").innerHTML = "";
+  for (let i=0; i<indexlist.length; i++) {
+    createDropdown(indexlist[i] + ": " + recorddict[indexlist[i]].length.toString(), recorddict[indexlist[i]]);
+  }
 
-      dataList = [];
+  document.getElementById("loading").innerHTML = "";
+  //console.log(indexlist);
+  //console.log(recorddict);
 
-      for (let i=0; i<indexlist.length; i++) {
-        dataDict = {'x':indexlist[i], 'y':recorddict[indexlist[i]].length};
-        dataList.push(dataDict);
-      }
+  dataList = [];
 
-      displayPie(dataList);
+  for (let i=0; i<indexlist.length; i++) {
+    dataDict = {'x':indexlist[i], 'y':recorddict[indexlist[i]].length};
+    dataList.push(dataDict);
+  }
 
-    });
+  displayPie(dataList);
 }
 
 
 function displayPie(theData) {
-  console.log(theData);
+  //console.log(theData);
   var pie = new ej.charts.AccumulationChart({
     //Initializing Series
     series: [
