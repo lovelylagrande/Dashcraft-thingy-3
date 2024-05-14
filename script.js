@@ -150,22 +150,22 @@ function wrCount(countAll) {
   }
 
   var fetches = [];
-  var URL1 = "https://api.dashcraft.io/trackv2/verified2?page=";
+  var URL1 = "https://api.dashcraft.io/trackv2/global3?sort=new&verifiedOnly=true&page=";
   if (countAll) {
-    URL1 = "https://api.dashcraft.io/trackv2/global2?sort=2&page=";
+    URL1 = "https://api.dashcraft.io/trackv2/global3?sort=new&verifiedOnly=false&page=";
   }
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 200; i++) {
     fetches.push(
       fetch(URL1 + i + "&pageSize=50")
                  .then((response) => response.json())
                  .then((json) => {
-      console.log(json);
+      //console.log(json);
       let json1 = json.tracks;
       let IDarr = [];
       for (let a = 0; a < json1.length; a++) {
         IDarr.push(json1[a]._id);
       }
-      console.log("IDarr:" + IDarr.toString());
+      //console.log("IDarr:" + IDarr.toString());
       return IDarr;
     }));
   }
@@ -173,6 +173,7 @@ function wrCount(countAll) {
   Promise.all(fetches)
     .then((IDL) => {
       IDarr = [];
+      console.log("Search found " + IDL.length + " tracks.");
       for (let a = 0; a < IDL.length; a++) {
         for (let b = 0; b < IDL[a].length; b++) {
           IDarr.push(IDL[a][b]);
